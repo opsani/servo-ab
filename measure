@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+
+from measure import Measure, ST_FAILED
+
+import json
+import re
+import subprocess
+import sys
+import time
+
+DESC="Apache Benchmark measure driver for Opsani Optune"
+VERSION="1.0.0"
+HAS_CANCEL=True
+PROGRESS_INTERVAL=30
+
+DFLT_LOAD_CFG = {
+    'n_threads'  : 10,
+    'n_requests' : 2000,
+    'user'       : '',
+    'password'   : '',
+}
+
+METRICS = {
+    'requests throughput': {
+        'unit': 'requests/s',
+    },
+    'time taken': {
+        'unit': 'seconds',
+    },
+    'number of errors': {
+        'unit': 'count',
+    },
+    'time per request (across all concurrent requests)': {
+        'unit': 'seconds',
+    },
+    'time per request': {
+        'unit': 'seconds',
+    },
+}
+
+class AB(Measure):
+    # def __init__(self, version, cli_desc, supports_cancel, progress_interval):
+    #     super().__init__(version, cli_desc, supports_cancel, progress_interval)
+
+    # overwrites super
+    def describe(self):
+        return METRICS
+
+    # overwrites super
+    def handle_cancel(self, signal, frame):
+        err = "Exiting due to signal: %s"%signal
+        self.print_measure_error(err, ST_FAILED)
+        try:
+            self.proc.terminate()
+        except:
+            pass
+        sys.exit(3)
+
+    # overwrites super
+    def measure(self):
+        load_cfg = DFLT_LOAD_CFG.copy()
+        try:
+            load = self.input_data['control']['load']
+        except:
+            raise Exception('Missing required load configuration in input')
+
+        try:
+            load_cfg['test_url'] = load['test_url']
+        except:
+            raise Exception('Load configuration is missing a test_url')
+
+        load_cfg.update(load)
+
+        result, command = self._run_ab(
+            test_url   = load_cfg['test_url'],
+            n_threads  = load_cfg['n_threads'],
+            n_requests = load_cfg['n_requests'],
+            user       = load_cfg['user'],
+            password   = load_cfg['password'],
+            )
+
+        metrics = {}
+
+        # TODO: if metrics were passed on input, only return those
+        for metric_name in result.keys():
+            metrics[metric_name] = METRICS[metric_name].copy()
+            metrics[metric_name]['value'] = result[metric_name]
+
+        annotations = {
+            'command': command,
+        }
+
+        return (metrics, annotations)
+
+    # helper
+    def _run_ab(self, test_url, n_threads, n_requests, user, password):
+
+        # Run Test
+        if user or password:
+            auth=['-A', user + ':' + password]
+        else:
+            auth=[]
+
+        cmd = ['ab', '-c', str(n_threads), '-n', str(n_requests)]
+        cmd.extend(auth)
+        cmd.append(test_url)
+
+        self.debug("Running test command:", cmd)
+
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        stderr = []
+        with self.proc.stderr:
+            for line in iter(self.proc.stderr.readline, b''):
+                l = line.decode().strip()
+                stderr.append(l)
+                m = re.search('Completed (\d+) requests', l)
+                if m:
+                    self.progress = int(100*int(m.group(1))/n_requests)
+                    self.print_progress()
+
+        return_code = self.proc.wait()
+        if return_code != 0:
+            self.debug("Command failed. Stderr:\n" + '\n'.join(stderr))
+            raise Exception("Failed to measure, Apache Benchmark failed with exit code: " + str(return_code))
+
+        # Parse results
+        time_taken = None
+        n_errors = None
+        rps = None
+        t_reqs = None
+        t_reqs_all = None
+
+        for line in self.proc.stdout.read().decode().split('\n'):
+
+            m = re.search('Time taken for tests:\s+([\d\.]+)', line)
+            if m:
+                time_taken = m.group(1)
+                continue
+
+            m = re.search('Failed requests:\s+(\d+)', line)
+            if m:
+                n_errors = m.group(1)
+                continue
+
+            m = re.search('Requests per second:\s+([\d\.]+)', line)
+            if m:
+                rps = float(m.group(1))
+                continue
+
+            m = re.search('Time per request:\s+([\d\.]+).+\(mean\)', line)
+            if m:
+                t_reqs = m.group(1)
+                continue
+
+            m = re.search('Time per request:\s+([\d\.]+).+\(mean, across all concurrent requests\)', line)
+            if m:
+                t_reqs_all = m.group(1)
+                continue
+
+        assert time_taken != None, \
+            "Failed to parse Apache Benchmark output: time taken"
+        assert n_errors   != None, \
+            "Failed to parse Apache Benchmark output: number of errors"
+        assert rps        != None, \
+            "Failed to parse Apache Benchmark output: requests per second"
+        assert t_reqs_all != None, \
+            "Failed to parse Apache Benchmark output: time per req (all)"
+        assert t_reqs     != None, \
+            "Failed to parse Apache Benchmark output: time per req"
+
+        result = {
+            'requests throughput': rps,
+            'time taken': time_taken,
+            'number of errors': n_errors,
+            'time per request (across all concurrent requests)':  t_reqs_all,
+            'time per request': t_reqs,
+        }
+
+        command = ' '.join(cmd)
+        return (result, command)
+
+
+if __name__ == '__main__':
+    ab = AB(VERSION, DESC, HAS_CANCEL, PROGRESS_INTERVAL)
+    ab.run()
