@@ -212,13 +212,15 @@ class AB(Measure):
                 prog_start, prog_coefficient)
             t.start()
 
-        # else glean progress from stderr
-        else:
-            stderr = []
-            with self.proc.stderr:
-                for line in iter(self.proc.stderr.readline, b''):
-                    l = line.decode().strip()
-                    stderr.append(l)
+        # process stderr
+        stderr = []
+        with self.proc.stderr:
+            for line in iter(self.proc.stderr.readline, b''):
+                l = line.decode().strip()
+                stderr.append(l)
+
+                # glean progress from stderr where measure is not time limited
+                if t_limit <= 0:
                     m = re.search(r'Completed (\d+) requests', l)
                     if m:
                         prog = min(100.0, 100.0 * int(m.group(1)) / n_requests)
