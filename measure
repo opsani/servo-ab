@@ -212,24 +212,32 @@ class AB(Measure):
                 prog_start, prog_coefficient)
             t.start()
 
-        # process stderr
-        stderr = []
-        with self.proc.stderr:
-            for line in iter(self.proc.stderr.readline, b''):
-                l = line.decode().strip()
-                stderr.append(l)
+        # use try-and-finally to ensure the timer, if any, is canceled and does
+        # not block driver exit in case of an exception
+        try:
 
-                # glean progress from stderr where measure is not time limited
-                if t_limit <= 0:
-                    m = re.search(r'Completed (\d+) requests', l)
-                    if m:
-                        prog = min(100.0, 100.0 * int(m.group(1)) / n_requests)
-                        self.progress = min(100, int((prog_coefficient * prog) + prog_start))
-                        self.print_progress()
+            # process stderr
+            stderr = []
+            with self.proc.stderr:
+                for line in iter(self.proc.stderr.readline, b''):
+                    l = line.decode().strip()
+                    stderr.append(l)
 
-        return_code = self.proc.wait()
-        if t_limit > 0:
-            t.cancel()
+                    # glean progress from stderr where measure is not time limited
+                    if t_limit <= 0:
+                        m = re.search(r'Completed (\d+) requests', l)
+                        if m:
+                            prog = min(100.0, 100.0 * int(m.group(1)) / n_requests)
+                            self.progress = min(100, int((prog_coefficient * prog) + prog_start))
+                            self.print_progress()
+
+            return_code = self.proc.wait()
+        except Exception as e:
+            raise
+        finally:
+            if t_limit > 0:
+                t.cancel()
+
         if return_code != 0:
             self.debug("Command failed. Stderr:\n" + '\n'.join(stderr))
             raise Exception("Failed to measure, Apache Benchmark failed with exit code: " + str(return_code))
