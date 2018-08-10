@@ -37,10 +37,10 @@ METRICS = {
         'unit': 'count',
     },
     'time per request (across all concurrent requests)': {
-        'unit': 'seconds',
+        'unit': 'milliseconds',
     },
     'time per request': {
-        'unit': 'seconds',
+        'unit': 'milliseconds',
     },
 }
 
@@ -154,12 +154,12 @@ class AB(Measure):
 
             m = re.search(r'Time taken for tests:\s+([\d\.]+)', line)
             if m:
-                time_taken = m.group(1)
+                time_taken = float(m.group(1))
                 continue
 
             m = re.search(r'Failed requests:\s+(\d+)', line)
             if m:
-                n_errors = m.group(1)
+                n_errors = int(m.group(1))
                 continue
 
             m = re.search(r'Requests per second:\s+([\d\.]+)', line)
@@ -169,12 +169,12 @@ class AB(Measure):
 
             m = re.search(r'Time per request:\s+([\d\.]+).+\(mean\)', line)
             if m:
-                t_reqs = m.group(1)
+                t_reqs = float(m.group(1))
                 continue
 
             m = re.search(r'Time per request:\s+([\d\.]+).+\(mean, across all concurrent requests\)', line)
             if m:
-                t_reqs_all = m.group(1)
+                t_reqs_all = float(m.group(1))
                 continue
 
         assert time_taken != None, \
