@@ -5,6 +5,8 @@ Optune servo driver for Apache Benchmark
 Supported environment variables:
 
 * `AB_TEST_URL` - URL to measure
+* `AB_EXTRA_HEADERS` - comman separated key:value headers: e.g.:
+```host:hostname.local,X-AUTH-TOKEN:aTokenForAuthentication```
 
 Supported control parameters:
 
