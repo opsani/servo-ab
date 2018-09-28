@@ -2,13 +2,15 @@
 Optune servo driver for Apache Benchmark
 
 
-Supported environment variables:
+## Supported environment variables:
 
 * `AB_TEST_URL` - URL to measure
-* `AB_EXTRA_HEADERS` - comman separated key:value headers: e.g.:
-```host:hostname.local,X-AUTH-TOKEN:aTokenForAuthentication```
+* `AB_EXTRA_HEADERS` - JSON "list" obejct key:value headers: e.g.:
+```
+["host:hostname.local","X-AUTH-TOKEN:aTokenForAuthentication"]
+```
 
-Supported control parameters:
+## Supported control parameters:
 
 * `load` - load configuration object, containing the following attributes:
 	* `test_url` - URL to measure (overrides value from environment variable)
@@ -47,10 +49,10 @@ measure front <<EOF
 {}
 EOF
 ```
-Pass multiple Header parameters as an environment variable (_note_: multiple headers are comma separated):
+Pass Header parameter(s) as an environment variable (*NOTE*: headers are):
 ```
 export AB_TEST_URL=http://localhost:8090/?busy=5
-export AB_EXTRA_HEADERS=host:back.example.com,x-auth-token:ThisShouldBeAnAuthToken
+export AB_EXTRA_HEADERS='["host:back.example.com","x-auth-token:ThisShouldBeAnAuthToken"]'
 measure back <<EOF
 {}
 EOF

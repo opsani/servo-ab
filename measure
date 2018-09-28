@@ -75,7 +75,7 @@ class AB(Measure):
         load_cfg['test_url'] = os.environ.get('AB_TEST_URL')
         # update the config dictionary with any extra headers, split into a list on comma
         if os.environ.get('AB_EXTRA_HEADERS'):
-            load_cfg['extra_headers'] = os.environ.get('AB_EXTRA_HEADERS').split(",")
+            load_cfg['extra_headers'] = json.loads(os.environ.get('AB_EXTRA_HEADERS'))
         load_cfg.update(load) # will override test_url and extra_headers if provided in load
         if not load_cfg['test_url']:
             raise Exception('Load configuration is missing a test_url')
