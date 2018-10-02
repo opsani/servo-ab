@@ -18,7 +18,7 @@ PROGRESS_INTERVAL=30
 
 DFLT_LOAD_CFG = {
     'n_threads'  : 10,
-    'n_requests' : 100000000,   # request limit
+    'n_requests' : 1000000,     # request limit
     't_limit'    : 180,         # time limit in seconds:   0 => no time limit
     't_warmup'   :  30,         # warmup time in seconds:  0 => no warmup
     'user'       : '',
@@ -122,7 +122,7 @@ class AB(Measure):
                 prog_coefficient = 0.25
 
             # construct and run warmup command
-            n_warmup_requests = 100000000
+            n_warmup_requests = 1000000
             cmd = ['ab', '-c', str(n_threads)]
             cmd.extend(['-t', str(t_warmup)])
             cmd.extend(['-n', str(n_warmup_requests)])
