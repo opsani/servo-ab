@@ -17,12 +17,13 @@ HAS_CANCEL=True
 PROGRESS_INTERVAL=30
 
 DFLT_LOAD_CFG = {
-    'n_threads'  : 10,
-    'n_requests' : 100000000,   # request limit
-    't_limit'    : 180,         # time limit in seconds:   0 => no time limit
-    't_warmup'   :  30,         # warmup time in seconds:  0 => no warmup
-    'user'       : '',
-    'password'   : '',
+    'n_threads'     : 10,
+    'n_requests'    : 10000000,   # request limit
+    't_limit'       : 180,         # time limit in seconds:   0 => no time limit
+    't_warmup'      :  30,         # warmup time in seconds:  0 => no warmup
+    'user'          : '',
+    'password'      : '',
+    'extra_headers' : [],
 }
 
 METRICS = {
@@ -70,19 +71,24 @@ class AB(Measure):
         except:
             raise Exception('Invalid control configuration format in input')
 
+        # update the config dictionary with the test URL
         load_cfg['test_url'] = os.environ.get('AB_TEST_URL')
-        load_cfg.update(load) # will override test_url if provided in load
+        # update the config dictionary with any extra headers, split into a list on comma
+        if os.environ.get('AB_EXTRA_HEADERS'):
+            load_cfg['extra_headers'] = json.loads(os.environ.get('AB_EXTRA_HEADERS'))
+        load_cfg.update(load) # will override test_url and extra_headers if provided in load
         if not load_cfg['test_url']:
             raise Exception('Load configuration is missing a test_url')
 
         result, command = self._run_ab(
-            test_url   = load_cfg['test_url'],
-            n_threads  = load_cfg['n_threads'],
-            n_requests = load_cfg['n_requests'],
-            t_limit    = load_cfg['t_limit'],
-            t_warmup   = load_cfg['t_warmup'],
-            user       = load_cfg['user'],
-            password   = load_cfg['password'],
+            test_url      = load_cfg['test_url'],
+            extra_headers = load_cfg['extra_headers'],
+            n_threads     = load_cfg['n_threads'],
+            n_requests    = load_cfg['n_requests'],
+            t_limit       = load_cfg['t_limit'],
+            t_warmup      = load_cfg['t_warmup'],
+            user          = load_cfg['user'],
+            password      = load_cfg['password'],
             )
 
         metrics = {}
@@ -99,7 +105,7 @@ class AB(Measure):
         return (metrics, annotations)
 
     # helper:  run apache benchmark measurement
-    def _run_ab(self, test_url, n_threads, n_requests, t_limit, t_warmup, user, password):
+    def _run_ab(self, test_url, extra_headers, n_threads, n_requests, t_limit, t_warmup, user, password):
 
         # process input
         if user or password:
@@ -122,10 +128,13 @@ class AB(Measure):
                 prog_coefficient = 0.25
 
             # construct and run warmup command
-            n_warmup_requests = 100000000
+            n_warmup_requests = 10000000
             cmd = ['ab', '-c', str(n_threads)]
             cmd.extend(['-t', str(t_warmup)])
             cmd.extend(['-n', str(n_warmup_requests)])
+            if extra_headers:
+                for header in extra_headers:
+                    cmd.extend(['-H', header])
             cmd.extend(auth)
             cmd.append(test_url)
             self._run_ab_progress(cmd, n_warmup_requests, t_warmup, 0.0, prog_coefficient)
@@ -139,6 +148,9 @@ class AB(Measure):
         if t_limit > 0:
             cmd.extend(['-t', str(t_limit)])
         cmd.extend(['-n', str(n_requests)])
+        if extra_headers:
+            for header in extra_headers:
+                cmd.extend(['-H', header])
         cmd.extend(auth)
         cmd.append(test_url)
         self._run_ab_progress(cmd, n_requests, t_limit, prog_start, prog_coefficient)
