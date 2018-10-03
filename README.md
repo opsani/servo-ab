@@ -5,15 +5,18 @@ Optune servo driver for Apache Benchmark
 ## Supported environment variables:
 
 * `AB_TEST_URL` - URL to measure
-* `AB_EXTRA_HEADERS` - JSON "list" obejct key:value headers: e.g.:
+* `AB_HEADERS` - JSON "list" obejct key:value headers: e.g.:
 ```
-["host:hostname.local","X-AUTH-TOKEN:aTokenForAuthentication"]
+["Host: hostname.local", "X-AUTH-TOKEN: aTokenForAuthentication"]
 ```
+
+Note: Control parameters take precedence over environment variables.
 
 ## Supported control parameters:
 
 * `load` - load configuration object, containing the following attributes:
 	* `test_url` - URL to measure (overrides value from environment variable)
+	* `headers` - list of arbritrary headers to be sent, example: `["Host: back.example.com", "X-AUTH-TOKEN: ThisShouldBeAnAuthToken"]`
 	* `n_threads` - number of concurrent requests, default 10
 	* `n_requests` - limit on number of requests to send, default 100,000,000
 	* `t_limit` - time limit in seconds for measurement, default 180
@@ -52,7 +55,7 @@ EOF
 Pass Header parameter(s) as an environment variable (*NOTE*: headers are):
 ```
 export AB_TEST_URL=http://localhost:8090/?busy=5
-export AB_EXTRA_HEADERS='["host:back.example.com","x-auth-token:ThisShouldBeAnAuthToken"]'
+export AB_HEADERS='["Host: back.example.com", "X-AUTH-TOKEN: ThisShouldBeAnAuthToken"]'
 measure back <<EOF
 {}
 EOF
@@ -61,6 +64,6 @@ Pass multiple Header parameters to the measure command as JSON (_note_: multiple
 ```
 export AB_TEST_URL=http://localhost:8090/?busy=5
 measure front <<EOF
-{"control":"load":{"extra_headers":["host:back.example.com","x-auth-token:ThisShouldBeAnAuthToken"]}}}
+{"control":"load":{"headers":["Host: back.example.com", "X-AUTH-TOKEN: ThisShouldBeAnAuthToken"]}}}
 EOF
 ```

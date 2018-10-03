@@ -23,7 +23,7 @@ DFLT_LOAD_CFG = {
     't_warmup'      :  30,         # warmup time in seconds:  0 => no warmup
     'user'          : '',
     'password'      : '',
-    'extra_headers' : [],
+    'headers'       : [],
 }
 
 METRICS = {
@@ -73,16 +73,16 @@ class AB(Measure):
 
         # update the config dictionary with the test URL
         load_cfg['test_url'] = os.environ.get('AB_TEST_URL')
-        # update the config dictionary with any extra headers, split into a list on comma
-        if os.environ.get('AB_EXTRA_HEADERS'):
-            load_cfg['extra_headers'] = json.loads(os.environ.get('AB_EXTRA_HEADERS'))
-        load_cfg.update(load) # will override test_url and extra_headers if provided in load
+        # update the config dictionary with any headers, split into a list on comma
+        if os.environ.get('AB_HEADERS'):
+            load_cfg['headers'] = json.loads(os.environ.get('AB_HEADERS'))
+        load_cfg.update(load) # will override test_url and headers if provided in load
         if not load_cfg['test_url']:
             raise Exception('Load configuration is missing a test_url')
 
         result, command = self._run_ab(
             test_url      = load_cfg['test_url'],
-            extra_headers = load_cfg['extra_headers'],
+            headers       = load_cfg['headers'],
             n_threads     = load_cfg['n_threads'],
             n_requests    = load_cfg['n_requests'],
             t_limit       = load_cfg['t_limit'],
@@ -105,7 +105,7 @@ class AB(Measure):
         return (metrics, annotations)
 
     # helper:  run apache benchmark measurement
-    def _run_ab(self, test_url, extra_headers, n_threads, n_requests, t_limit, t_warmup, user, password):
+    def _run_ab(self, test_url, headers, n_threads, n_requests, t_limit, t_warmup, user, password):
 
         # process input
         if user or password:
@@ -132,8 +132,8 @@ class AB(Measure):
             cmd = ['ab', '-c', str(n_threads)]
             cmd.extend(['-t', str(t_warmup)])
             cmd.extend(['-n', str(n_warmup_requests)])
-            if extra_headers:
-                for header in extra_headers:
+            if headers:
+                for header in headers:
                     cmd.extend(['-H', header])
             cmd.extend(auth)
             cmd.append(test_url)
@@ -148,8 +148,8 @@ class AB(Measure):
         if t_limit > 0:
             cmd.extend(['-t', str(t_limit)])
         cmd.extend(['-n', str(n_requests)])
-        if extra_headers:
-            for header in extra_headers:
+        if headers:
+            for header in headers:
                 cmd.extend(['-H', header])
         cmd.extend(auth)
         cmd.append(test_url)
