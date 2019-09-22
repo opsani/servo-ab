@@ -128,8 +128,8 @@ class AB(Measure):
                 prog_coefficient = 0.25
 
             # construct and run warmup command
-            n_warmup_requests = 10000000
-            cmd = ['ab', '-c', str(n_threads)]
+            n_warmup_requests = n_requests # assume warmup is less than duration requested
+            cmd = ['ab', '-l', '-c', str(n_threads)]
             cmd.extend(['-t', str(t_warmup)])
             cmd.extend(['-n', str(n_warmup_requests)])
             if headers:
@@ -144,7 +144,7 @@ class AB(Measure):
             prog_coefficient = 1.0 - prog_coefficient
 
         # construct and run measurement command
-        cmd = ['ab', '-c', str(n_threads)]
+        cmd = ['ab', '-l', '-c', str(n_threads)]
         if t_limit > 0:
             cmd.extend(['-t', str(t_limit)])
         cmd.extend(['-n', str(n_requests)])
