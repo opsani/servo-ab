@@ -59,7 +59,8 @@ class AB(Measure):
         self.print_measure_error(err, ST_FAILED)
         try:
             self.proc.terminate()
-        except:
+        # No sec below as process should be terminated by sys.exit if the above fails
+        except: # nosec
             pass
         sys.exit(3)
 
