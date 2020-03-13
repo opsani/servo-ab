@@ -12,7 +12,7 @@ import json
 from threading import Timer
 
 DESC="Apache Benchmark measure driver for Opsani Optune"
-VERSION="1.0.0"
+VERSION="1.0.1"
 HAS_CANCEL=True
 PROGRESS_INTERVAL=30
 
@@ -79,6 +79,15 @@ class AB(Measure):
         load_cfg.update(load) # will override test_url and headers if provided in load
         if not load_cfg['test_url']:
             raise Exception('Load configuration is missing a test_url')
+
+        if os.environ.get('AB_N_THREADS'):
+            load_cfg['n_threads'] = os.environ.get('AB_N_THREADS')
+        if os.environ.get('AB_N_REQUESTS'):
+            load_cfg['n_requests'] = os.environ.get('AB_N_REQUESTS')
+        if os.environ.get('AB_T_LIMIT'):
+            load_cfg['t_limit'] = os.environ.get('AB_T_LIMIT')
+        if os.environ.get('AB_T_WARMUP'):
+            load_cfg['t_warmup'] = os.environ.get('AB_T_WARMUP')
 
         result, command = self._run_ab(
             test_url      = load_cfg['test_url'],

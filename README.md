@@ -9,8 +9,13 @@ Optune servo driver for Apache Benchmark
 ```
 ["Host: hostname.local", "X-AUTH-TOKEN: aTokenForAuthentication"]
 ```
+* `AB_N_THREADS` - Number of multiple requests to perform at a time.
+* `AB_N_REQUESTS` - Number of requests to perform for the benchmarking session.
+* `AB_T_LIMIT` - Maximum number of seconds to spend for benchmarking.
+* `AB_T_WARMUP` - Number of seconds to wait after start to perform measurement.
 
-Note: Control parameters take precedence over environment variables.
+Note: Control parameters can also be defined in code.  There are defaults for
+AB_N and AB_T parameters if not specified as environment variables.
 
 ## Supported control parameters:
 
